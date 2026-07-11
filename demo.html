@@ -1,0 +1,1008 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Alignment Console - Static Demo</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #08101f;
+      --panel: #0f172a;
+      --panel-2: #111c34;
+      --border: #27364f;
+      --text: #e2e8f0;
+      --muted: #91a4c6;
+      --primary: #3b82f6;
+      --primary-2: #2563eb;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --shadow: 0 18px 45px rgba(2, 8, 23, 0.34);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, Arial, sans-serif;
+      background:
+        radial-gradient(circle at top right, rgba(59,130,246,0.18), transparent 28%),
+        linear-gradient(180deg, #08101f 0%, #0a1222 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    a { color: inherit; }
+
+    .shell {
+      max-width: 1380px;
+      margin: 0 auto;
+      padding: 28px 20px 44px;
+    }
+
+    .hero, .panel {
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid rgba(71, 85, 105, 0.34);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .hero {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 28px;
+      margin-bottom: 20px;
+      align-items: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #93c5fd;
+      margin-bottom: 10px;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--success);
+      box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.16);
+    }
+
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: clamp(30px, 4vw, 42px); margin-bottom: 10px; }
+    h2 { font-size: 20px; margin-bottom: 14px; }
+    h3 { font-size: 16px; margin-bottom: 12px; }
+    .subcopy { color: var(--muted); max-width: 780px; line-height: 1.6; }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.75fr) minmax(320px, 0.95fr);
+      gap: 20px;
+    }
+
+    .stack {
+      display: grid;
+      gap: 20px;
+    }
+
+    .panel { padding: 22px; }
+
+    .muted { color: var(--muted); }
+
+    .statusbar {
+      margin-top: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .badge, .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: 12px;
+      line-height: 1;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+
+    .badge.ready { background: rgba(34,197,94,0.14); color: #bbf7d0; border-color: rgba(34,197,94,0.28); }
+    .badge.pending { background: rgba(245,158,11,0.15); color: #fde68a; border-color: rgba(245,158,11,0.3); }
+    .pill { background: rgba(59,130,246,0.13); color: #bfdbfe; border-color: rgba(59,130,246,0.22); }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .field { grid-column: span 4; }
+    .field.wide { grid-column: span 6; }
+    .field.full { grid-column: 1 / -1; }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #9fb2d0;
+      margin-bottom: 8px;
+    }
+
+    input, select, textarea, button {
+      width: 100%;
+      font: inherit;
+      border-radius: 12px;
+      border: 1px solid #324763;
+      background: #091224;
+      color: var(--text);
+      padding: 12px 14px;
+      transition: border-color 0.2s ease, transform 0.15s ease, background 0.2s ease;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #60a5fa;
+      box-shadow: 0 0 0 3px rgba(96,165,250,0.16);
+    }
+
+    textarea { min-height: 108px; resize: vertical; }
+
+    button {
+      cursor: pointer;
+      font-weight: 700;
+      background: linear-gradient(180deg, var(--primary), var(--primary-2));
+      border-color: rgba(59,130,246,0.42);
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button.secondary { background: #0d1729; }
+    button.ghost { background: transparent; }
+    button.warn { background: linear-gradient(180deg, #f59e0b, #d97706); border-color: rgba(245,158,11,0.42); }
+    button.success { background: linear-gradient(180deg, #22c55e, #16a34a); border-color: rgba(34,197,94,0.4); }
+    button.small { padding: 9px 12px; font-size: 13px; }
+    button:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+    .sheet-row {
+      display: grid;
+      grid-template-columns: minmax(240px, 1.2fr) auto auto;
+      gap: 12px;
+      align-items: end;
+    }
+
+    .workflow-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 20px;
+    }
+
+    .stat-card {
+      padding: 18px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(17,28,52,0.95), rgba(9,18,36,0.92));
+      border: 1px solid rgba(71,85,105,0.28);
+    }
+
+    .stat-label {
+      color: #9fb2d0;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 10px;
+    }
+
+    .stat-value { font-size: 30px; font-weight: 800; }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .toolbar-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border-radius: 16px;
+      border: 1px solid rgba(71,85,105,0.24);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 860px;
+      background: rgba(8, 16, 31, 0.55);
+    }
+
+    th, td {
+      padding: 14px 12px;
+      text-align: left;
+      border-bottom: 1px solid rgba(71,85,105,0.18);
+      vertical-align: top;
+    }
+
+    th {
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #93c5fd;
+      background: rgba(15, 23, 42, 0.96);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    tbody tr { transition: background 0.18s ease; }
+    tbody tr:hover { background: rgba(59,130,246,0.06); }
+    tbody tr.selected { background: rgba(59,130,246,0.12); }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid transparent;
+    }
+
+    .status-draft { color: #dbeafe; background: rgba(59,130,246,0.15); border-color: rgba(59,130,246,0.28); }
+    .status-staged { color: #fde68a; background: rgba(245,158,11,0.15); border-color: rgba(245,158,11,0.26); }
+    .status-published { color: #bbf7d0; background: rgba(34,197,94,0.15); border-color: rgba(34,197,94,0.28); }
+    .status-needs-review { color: #fecaca; background: rgba(239,68,68,0.14); border-color: rgba(239,68,68,0.26); }
+
+    .action-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .kv {
+      display: grid;
+      grid-template-columns: 100px 1fr;
+      gap: 10px;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+
+    .kv strong { color: #9fb2d0; }
+
+    .empty {
+      padding: 28px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .activity {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 10px;
+      max-height: 260px;
+      overflow: auto;
+    }
+
+    .activity li {
+      border: 1px solid rgba(71,85,105,0.24);
+      background: rgba(9,18,36,0.8);
+      border-radius: 14px;
+      padding: 12px 14px;
+    }
+
+    .activity time {
+      display: block;
+      color: #7f93b6;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    .helper {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      background: rgba(15,23,42,0.97);
+      border: 1px solid rgba(96,165,250,0.28);
+      border-radius: 14px;
+      padding: 12px 14px;
+      min-width: 260px;
+      opacity: 0;
+      transform: translateY(12px);
+      pointer-events: none;
+      transition: all 0.24s ease;
+      box-shadow: var(--shadow);
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 1120px) {
+      .layout { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 820px) {
+      .field, .field.wide { grid-column: 1 / -1; }
+      .sheet-row { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: 1fr; }
+      .hero { padding: 22px; }
+      .panel { padding: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div>
+        <div class="eyebrow">Static portfolio recreation</div>
+        <h1>Alignment Console</h1>
+        <p class="subcopy">Self-contained browser demo of the original Google Apps Script UI. It uses fake spreadsheet connections, local mock queue data, async latency simulation, filters, row editing, and stage/publish flows with no backend dependencies.</p>
+        <div class="statusbar">
+          <span id="connectionBadge" class="badge pending">Not connected</span>
+          <span id="sheetMeta" class="muted">Choose a mock spreadsheet to start.</span>
+        </div>
+      </div>
+      <div class="hero-actions">
+        <a href="https://github.com/vlabarile3-sys/alignment-console" target="_blank" rel="noopener"><button type="button" class="secondary">Repository</button></a>
+        <button id="reloadBtn" type="button" class="ghost">Reload mock dataset</button>
+      </div>
+    </section>
+
+    <section class="layout">
+      <div class="stack">
+        <section class="panel">
+          <h2>1. Connect a mock spreadsheet</h2>
+          <p class="muted">This replaces <code>google.script.run</code> calls with local async mock functions that return fake spreadsheet IDs, workflows, and rows.</p>
+          <div class="sheet-row" style="margin-top:16px;">
+            <div>
+              <label for="sheetSelect">Mock spreadsheet</label>
+              <select id="sheetSelect"></select>
+            </div>
+            <button id="connectBtn" type="button">Connect sheet</button>
+            <button id="loadBtn" type="button" class="secondary">Load queue</button>
+          </div>
+          <div id="workflowPills" class="workflow-pills"></div>
+          <div class="stats">
+            <div class="stat-card">
+              <div class="stat-label">Queue size</div>
+              <div id="statTotal" class="stat-value">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Draft / review</div>
+              <div id="statReview" class="stat-value">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Staged</div>
+              <div id="statStaged" class="stat-value">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Published</div>
+              <div id="statPublished" class="stat-value">0</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="toolbar">
+            <div>
+              <h2>2. Filter the alignment queue</h2>
+              <p class="muted">Search by ID, market, owner, workflow, or note. Filters update instantly.</p>
+            </div>
+            <div class="toolbar-actions">
+              <button id="resetFiltersBtn" type="button" class="secondary small">Reset filters</button>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="field">
+              <label for="workflowFilter">Workflow</label>
+              <select id="workflowFilter"></select>
+            </div>
+            <div class="field">
+              <label for="statusFilter">Status</label>
+              <select id="statusFilter">
+                <option value="ALL">All statuses</option>
+                <option value="Draft">Draft</option>
+                <option value="Needs Review">Needs Review</option>
+                <option value="Staged">Staged</option>
+                <option value="Published">Published</option>
+              </select>
+            </div>
+            <div class="field wide">
+              <label for="searchInput">Quick search</label>
+              <input id="searchInput" type="text" placeholder="Search ID, market, owner or note" />
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="toolbar">
+            <div>
+              <h2>3. Review queue rows</h2>
+              <p id="tableSummary" class="muted">No data loaded yet.</p>
+            </div>
+            <div class="toolbar-actions">
+              <button id="selectFirstBtn" type="button" class="secondary small">Select first item</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Workflow</th>
+                  <th>Policy</th>
+                  <th>Market</th>
+                  <th>Owner</th>
+                  <th>Status</th>
+                  <th>Updated</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="rowsBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <div class="stack">
+        <section class="panel">
+          <h2>Selected item</h2>
+          <div id="selectionState" class="muted">Pick a row from the table to inspect or update it.</div>
+          <div id="selectionDetails" style="margin-top:14px;"></div>
+          <div class="form-grid" style="margin-top:16px;">
+            <div class="field">
+              <label for="detailVerdict">Verdict</label>
+              <select id="detailVerdict">
+                <option>Approved</option>
+                <option>Review</option>
+                <option>Rejected</option>
+              </select>
+            </div>
+            <div class="field full">
+              <label for="detailNote">Operator note</label>
+              <textarea id="detailNote" placeholder="Add a note for the mock alignment item"></textarea>
+            </div>
+          </div>
+          <div class="action-row" style="margin-top:14px;">
+            <button id="saveSelectedBtn" type="button">Save mock update</button>
+            <button id="stageSelectedBtn" type="button" class="warn">Stage item</button>
+            <button id="publishSelectedBtn" type="button" class="success">Publish item</button>
+          </div>
+          <p class="helper">These actions update only the local in-browser mock store and simulate async backend responses with <code>setTimeout</code>.</p>
+        </section>
+
+        <section class="panel">
+          <h2>Create a new mock row</h2>
+          <p class="muted">This mirrors the original save flow using local sample data instead of Apps Script.</p>
+          <div class="form-grid" style="margin-top:14px;">
+            <div class="field">
+              <label for="composerWorkflow">Workflow</label>
+              <select id="composerWorkflow"></select>
+            </div>
+            <div class="field">
+              <label for="composerPolicy">Policy</label>
+              <select id="composerPolicy"></select>
+            </div>
+            <div class="field">
+              <label for="composerVerdict">Verdict</label>
+              <select id="composerVerdict">
+                <option>Approved</option>
+                <option selected>Review</option>
+                <option>Rejected</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="composerMarket">Market</label>
+              <input id="composerMarket" type="text" value="IT" maxlength="12" />
+            </div>
+            <div class="field">
+              <label for="composerOwner">Owner</label>
+              <input id="composerOwner" type="text" value="Ops Desk" maxlength="30" />
+            </div>
+            <div class="field full">
+              <label for="composerNote">Note</label>
+              <textarea id="composerNote" placeholder="Describe the mock issue or escalation">Synthetic queue item for demo walkthrough.</textarea>
+            </div>
+          </div>
+          <div class="action-row" style="margin-top:14px;">
+            <button id="saveNewBtn" type="button">Save mock row</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Activity log</h2>
+          <ul id="activityLog" class="activity"></ul>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const mockDb = {
+      sheets: [
+        {
+          id: 'MOCK-SHEET-01',
+          name: 'Alignment Intake - EU Ops',
+          workflows: ['WF_ALPHA', 'WF_BETA', 'WF_GAMMA'],
+          policies: ['Policy-A', 'Policy-B', 'Policy-C'],
+          rows: [
+            { id: 'ALN-1001', workflow: 'WF_ALPHA', policy: 'Policy-A', market: 'DE', owner: 'Ops Desk', status: 'Draft', verdict: 'Review', note: 'Address mismatch between source feed and intake sheet.', updatedAt: '2026-07-11 18:42' },
+            { id: 'ALN-1002', workflow: 'WF_BETA', policy: 'Policy-B', market: 'FR', owner: 'Policy Team', status: 'Staged', verdict: 'Approved', note: 'Ready for downstream sync after final check.', updatedAt: '2026-07-11 18:57' },
+            { id: 'ALN-1003', workflow: 'WF_GAMMA', policy: 'Policy-C', market: 'NL', owner: 'QA Review', status: 'Needs Review', verdict: 'Rejected', note: 'Synthetic rule conflict flagged for manual review.', updatedAt: '2026-07-11 19:03' }
+          ]
+        },
+        {
+          id: 'MOCK-SHEET-02',
+          name: 'Alignment Intake - NA Ops',
+          workflows: ['WF_ALPHA', 'WF_DELTA', 'WF_EPSILON'],
+          policies: ['Policy-A', 'Policy-D', 'Policy-E'],
+          rows: [
+            { id: 'ALN-2001', workflow: 'WF_DELTA', policy: 'Policy-D', market: 'US', owner: 'Publish Team', status: 'Published', verdict: 'Approved', note: 'Mock item already released to target queue.', updatedAt: '2026-07-11 17:29' },
+            { id: 'ALN-2002', workflow: 'WF_ALPHA', policy: 'Policy-A', market: 'CA', owner: 'Ops Desk', status: 'Draft', verdict: 'Review', note: 'Waiting for owner confirmation before stage.', updatedAt: '2026-07-11 18:16' },
+            { id: 'ALN-2003', workflow: 'WF_EPSILON', policy: 'Policy-E', market: 'MX', owner: 'Regional QA', status: 'Staged', verdict: 'Approved', note: 'Prepared for mock publish in next run.', updatedAt: '2026-07-11 18:34' }
+          ]
+        }
+      ]
+    };
+
+    const appState = {
+      connectedSheetId: '',
+      rows: [],
+      workflows: [],
+      policies: [],
+      selectedId: null,
+      filters: { workflow: 'ALL', status: 'ALL', query: '' }
+    };
+
+    const ui = {};
+
+    function clone(value) {
+      return JSON.parse(JSON.stringify(value));
+    }
+
+    function nowStamp() {
+      const d = new Date();
+      const pad = (n) => String(n).padStart(2, '0');
+      return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    }
+
+    function withLatency(payload) {
+      return new Promise((resolve) => {
+        const delay = 260 + Math.floor(Math.random() * 380);
+        setTimeout(() => resolve(clone(payload)), delay);
+      });
+    }
+
+    function getCurrentSheet() {
+      return mockDb.sheets.find((sheet) => sheet.id === appState.connectedSheetId) || mockDb.sheets[0];
+    }
+
+    const mockApi = {
+      listSheets() {
+        return withLatency({
+          success: true,
+          sheets: mockDb.sheets.map(({ id, name }) => ({ id, name }))
+        });
+      },
+      connectSheet(sheetId) {
+        const sheet = mockDb.sheets.find((item) => item.id === sheetId) || mockDb.sheets[0];
+        return withLatency({
+          success: true,
+          spreadsheetId: sheet.id,
+          sheetName: sheet.name,
+          workflows: sheet.workflows,
+          policies: sheet.policies,
+          connectedAt: nowStamp()
+        });
+      },
+      loadConsoleData(sheetId) {
+        const sheet = mockDb.sheets.find((item) => item.id === sheetId) || mockDb.sheets[0];
+        return withLatency({
+          success: true,
+          rows: sheet.rows,
+          workflows: sheet.workflows,
+          policies: sheet.policies
+        });
+      },
+      saveItem(payload) {
+        const sheet = getCurrentSheet();
+        const row = {
+          id: 'ALN-' + Math.floor(3000 + Math.random() * 6000),
+          workflow: payload.workflow,
+          policy: payload.policy,
+          market: payload.market.toUpperCase(),
+          owner: payload.owner,
+          status: 'Draft',
+          verdict: payload.verdict,
+          note: payload.note,
+          updatedAt: nowStamp()
+        };
+        sheet.rows.unshift(row);
+        return withLatency({ success: true, saved: row, message: row.id + ' added to the mock queue.' });
+      },
+      updateItem(payload) {
+        const sheet = getCurrentSheet();
+        const row = sheet.rows.find((item) => item.id === payload.id);
+        if (!row) {
+          return withLatency({ success: false, message: 'Item not found.' });
+        }
+        row.verdict = payload.verdict;
+        row.note = payload.note;
+        row.updatedAt = nowStamp();
+        return withLatency({ success: true, row, message: row.id + ' saved locally.' });
+      },
+      stageItem(id) {
+        const sheet = getCurrentSheet();
+        const row = sheet.rows.find((item) => item.id === id);
+        row.status = 'Staged';
+        row.updatedAt = nowStamp();
+        return withLatency({ success: true, row, message: id + ' staged for mock publishing.' });
+      },
+      publishItem(id) {
+        const sheet = getCurrentSheet();
+        const row = sheet.rows.find((item) => item.id === id);
+        row.status = 'Published';
+        row.updatedAt = nowStamp();
+        return withLatency({ success: true, row, message: id + ' published to mock destination.' });
+      }
+    };
+
+    function statusClass(status) {
+      return 'status-' + status.toLowerCase().replace(/\s+/g, '-');
+    }
+
+    function addActivity(message) {
+      const item = document.createElement('li');
+      item.innerHTML = '<div>' + escapeHtml(message) + '</div><time>' + nowStamp() + '</time>';
+      ui.activityLog.prepend(item);
+      while (ui.activityLog.children.length > 8) {
+        ui.activityLog.removeChild(ui.activityLog.lastChild);
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function showToast(message) {
+      ui.toast.textContent = message;
+      ui.toast.classList.add('show');
+      window.clearTimeout(showToast.timer);
+      showToast.timer = window.setTimeout(() => ui.toast.classList.remove('show'), 2300);
+    }
+
+    function fillSelect(select, values, includeAllLabel) {
+      const options = [];
+      if (includeAllLabel) {
+        options.push('<option value="ALL">' + includeAllLabel + '</option>');
+      }
+      values.forEach((value) => {
+        options.push('<option value="' + escapeHtml(value) + '">' + escapeHtml(value) + '</option>');
+      });
+      select.innerHTML = options.join('');
+    }
+
+    function renderWorkflowPills() {
+      ui.workflowPills.innerHTML = appState.workflows.map((workflow) => '<span class="pill">' + escapeHtml(workflow) + '</span>').join('');
+    }
+
+    function getFilteredRows() {
+      const query = appState.filters.query.trim().toLowerCase();
+      return appState.rows.filter((row) => {
+        const workflowMatch = appState.filters.workflow === 'ALL' || row.workflow === appState.filters.workflow;
+        const statusMatch = appState.filters.status === 'ALL' || row.status === appState.filters.status;
+        const queryMatch = !query || [row.id, row.market, row.owner, row.note, row.workflow, row.policy].join(' ').toLowerCase().includes(query);
+        return workflowMatch && statusMatch && queryMatch;
+      });
+    }
+
+    function renderStats() {
+      ui.statTotal.textContent = String(appState.rows.length);
+      ui.statReview.textContent = String(appState.rows.filter((row) => row.status === 'Draft' || row.status === 'Needs Review').length);
+      ui.statStaged.textContent = String(appState.rows.filter((row) => row.status === 'Staged').length);
+      ui.statPublished.textContent = String(appState.rows.filter((row) => row.status === 'Published').length);
+    }
+
+    function renderTable() {
+      const rows = getFilteredRows();
+      ui.tableSummary.textContent = rows.length + ' visible row' + (rows.length === 1 ? '' : 's') + ' in ' + appState.connectedSheetId + '.';
+      if (!rows.length) {
+        ui.rowsBody.innerHTML = '<tr><td colspan="8" class="empty">No rows match the current filters.</td></tr>';
+        return;
+      }
+      ui.rowsBody.innerHTML = rows.map((row) => {
+        const disableStage = row.status === 'Staged' || row.status === 'Published';
+        const disablePublish = row.status === 'Published';
+        return '<tr class="' + (row.id === appState.selectedId ? 'selected' : '') + '">' +
+          '<td><strong>' + escapeHtml(row.id) + '</strong><br><span class="muted">' + escapeHtml(row.verdict) + '</span></td>' +
+          '<td>' + escapeHtml(row.workflow) + '</td>' +
+          '<td>' + escapeHtml(row.policy) + '</td>' +
+          '<td>' + escapeHtml(row.market) + '</td>' +
+          '<td>' + escapeHtml(row.owner) + '</td>' +
+          '<td><span class="status-pill ' + statusClass(row.status) + '">' + escapeHtml(row.status) + '</span></td>' +
+          '<td>' + escapeHtml(row.updatedAt) + '</td>' +
+          '<td><div class="action-row">' +
+            '<button class="secondary small" data-action="select" data-id="' + escapeHtml(row.id) + '">View</button>' +
+            '<button class="warn small" data-action="stage" data-id="' + escapeHtml(row.id) + '" ' + (disableStage ? 'disabled' : '') + '>Stage</button>' +
+            '<button class="success small" data-action="publish" data-id="' + escapeHtml(row.id) + '" ' + (disablePublish ? 'disabled' : '') + '>Publish</button>' +
+          '</div></td>' +
+        '</tr>';
+      }).join('');
+    }
+
+    function getSelectedRow() {
+      return appState.rows.find((row) => row.id === appState.selectedId) || null;
+    }
+
+    function renderSelection() {
+      const row = getSelectedRow();
+      const hasRow = Boolean(row);
+      ui.saveSelectedBtn.disabled = !hasRow;
+      ui.stageSelectedBtn.disabled = !hasRow || row.status === 'Staged' || row.status === 'Published';
+      ui.publishSelectedBtn.disabled = !hasRow || row.status === 'Published';
+      ui.detailVerdict.disabled = !hasRow;
+      ui.detailNote.disabled = !hasRow;
+
+      if (!row) {
+        ui.selectionState.textContent = 'Pick a row from the table to inspect or update it.';
+        ui.selectionDetails.innerHTML = '';
+        ui.detailVerdict.value = 'Approved';
+        ui.detailNote.value = '';
+        return;
+      }
+
+      ui.selectionState.innerHTML = '<span class="status-pill ' + statusClass(row.status) + '">' + escapeHtml(row.status) + '</span>';
+      ui.selectionDetails.innerHTML = [
+        ['Item', row.id],
+        ['Workflow', row.workflow],
+        ['Policy', row.policy],
+        ['Market', row.market],
+        ['Owner', row.owner],
+        ['Updated', row.updatedAt]
+      ].map(([key, value]) => '<div class="kv"><strong>' + escapeHtml(key) + '</strong><span>' + escapeHtml(value) + '</span></div>').join('');
+      ui.detailVerdict.value = row.verdict;
+      ui.detailNote.value = row.note;
+    }
+
+    function renderAll() {
+      renderWorkflowPills();
+      renderStats();
+      renderTable();
+      renderSelection();
+    }
+
+    async function connectAndLoad(sheetId, silent) {
+      ui.connectionBadge.textContent = 'Connecting...';
+      ui.connectionBadge.className = 'badge pending';
+      const connection = await mockApi.connectSheet(sheetId);
+      appState.connectedSheetId = connection.spreadsheetId;
+      appState.workflows = connection.workflows;
+      appState.policies = connection.policies;
+      ui.sheetMeta.textContent = connection.sheetName + ' • ' + connection.spreadsheetId + ' • connected ' + connection.connectedAt;
+      fillSelect(ui.workflowFilter, appState.workflows, 'All workflows');
+      fillSelect(ui.composerWorkflow, appState.workflows);
+      fillSelect(ui.composerPolicy, appState.policies);
+
+      const data = await mockApi.loadConsoleData(sheetId);
+      appState.rows = data.rows;
+      if (!appState.selectedId || !appState.rows.some((row) => row.id === appState.selectedId)) {
+        appState.selectedId = appState.rows[0] ? appState.rows[0].id : null;
+      }
+      ui.connectionBadge.textContent = 'Connected';
+      ui.connectionBadge.className = 'badge ready';
+      renderAll();
+      if (!silent) {
+        addActivity('Connected to ' + connection.spreadsheetId + ' and loaded ' + appState.rows.length + ' mock row(s).');
+        showToast('Loaded ' + appState.rows.length + ' rows from ' + connection.spreadsheetId + '.');
+      }
+    }
+
+    async function saveSelected() {
+      const row = getSelectedRow();
+      if (!row) return;
+      const result = await mockApi.updateItem({
+        id: row.id,
+        verdict: ui.detailVerdict.value,
+        note: ui.detailNote.value.trim() || 'No note provided.'
+      });
+      if (result.success) {
+        renderAll();
+        addActivity(result.message);
+        showToast(result.message);
+      }
+    }
+
+    async function changeStatus(id, nextStatus) {
+      const fn = nextStatus === 'Published' ? mockApi.publishItem : mockApi.stageItem;
+      const result = await fn(id);
+      if (result.success) {
+        appState.selectedId = id;
+        renderAll();
+        addActivity(result.message);
+        showToast(result.message);
+      }
+    }
+
+    async function saveNewItem() {
+      const payload = {
+        workflow: ui.composerWorkflow.value,
+        policy: ui.composerPolicy.value,
+        verdict: ui.composerVerdict.value,
+        market: ui.composerMarket.value.trim() || 'IT',
+        owner: ui.composerOwner.value.trim() || 'Ops Desk',
+        note: ui.composerNote.value.trim() || 'Synthetic queue item.'
+      };
+      const result = await mockApi.saveItem(payload);
+      if (result.success) {
+        appState.rows = getCurrentSheet().rows;
+        appState.selectedId = result.saved.id;
+        renderAll();
+        ui.composerNote.value = 'Synthetic queue item for demo walkthrough.';
+        addActivity(result.message);
+        showToast(result.message);
+      }
+    }
+
+    function bindEvents() {
+      ui.connectBtn.addEventListener('click', () => connectAndLoad(ui.sheetSelect.value));
+      ui.loadBtn.addEventListener('click', () => connectAndLoad(ui.sheetSelect.value));
+      ui.reloadBtn.addEventListener('click', () => connectAndLoad(appState.connectedSheetId || ui.sheetSelect.value, true).then(() => {
+        addActivity('Mock dataset refreshed from local store.');
+        showToast('Mock dataset refreshed.');
+      }));
+      ui.resetFiltersBtn.addEventListener('click', () => {
+        appState.filters = { workflow: 'ALL', status: 'ALL', query: '' };
+        ui.workflowFilter.value = 'ALL';
+        ui.statusFilter.value = 'ALL';
+        ui.searchInput.value = '';
+        renderTable();
+      });
+      ui.workflowFilter.addEventListener('change', (event) => {
+        appState.filters.workflow = event.target.value;
+        renderTable();
+      });
+      ui.statusFilter.addEventListener('change', (event) => {
+        appState.filters.status = event.target.value;
+        renderTable();
+      });
+      ui.searchInput.addEventListener('input', (event) => {
+        appState.filters.query = event.target.value;
+        renderTable();
+      });
+      ui.selectFirstBtn.addEventListener('click', () => {
+        const first = getFilteredRows()[0];
+        if (!first) return;
+        appState.selectedId = first.id;
+        renderAll();
+      });
+      ui.saveSelectedBtn.addEventListener('click', saveSelected);
+      ui.stageSelectedBtn.addEventListener('click', () => {
+        const row = getSelectedRow();
+        if (row) changeStatus(row.id, 'Staged');
+      });
+      ui.publishSelectedBtn.addEventListener('click', () => {
+        const row = getSelectedRow();
+        if (row) changeStatus(row.id, 'Published');
+      });
+      ui.saveNewBtn.addEventListener('click', saveNewItem);
+      ui.rowsBody.addEventListener('click', (event) => {
+        const button = event.target.closest('button[data-action]');
+        if (!button) return;
+        const id = button.getAttribute('data-id');
+        const action = button.getAttribute('data-action');
+        if (action === 'select') {
+          appState.selectedId = id;
+          renderAll();
+          return;
+        }
+        if (action === 'stage') {
+          changeStatus(id, 'Staged');
+          return;
+        }
+        if (action === 'publish') {
+          changeStatus(id, 'Published');
+        }
+      });
+    }
+
+    async function boot() {
+      Object.assign(ui, {
+        connectionBadge: document.getElementById('connectionBadge'),
+        sheetMeta: document.getElementById('sheetMeta'),
+        sheetSelect: document.getElementById('sheetSelect'),
+        connectBtn: document.getElementById('connectBtn'),
+        loadBtn: document.getElementById('loadBtn'),
+        reloadBtn: document.getElementById('reloadBtn'),
+        workflowPills: document.getElementById('workflowPills'),
+        statTotal: document.getElementById('statTotal'),
+        statReview: document.getElementById('statReview'),
+        statStaged: document.getElementById('statStaged'),
+        statPublished: document.getElementById('statPublished'),
+        workflowFilter: document.getElementById('workflowFilter'),
+        statusFilter: document.getElementById('statusFilter'),
+        searchInput: document.getElementById('searchInput'),
+        resetFiltersBtn: document.getElementById('resetFiltersBtn'),
+        tableSummary: document.getElementById('tableSummary'),
+        rowsBody: document.getElementById('rowsBody'),
+        selectFirstBtn: document.getElementById('selectFirstBtn'),
+        selectionState: document.getElementById('selectionState'),
+        selectionDetails: document.getElementById('selectionDetails'),
+        detailVerdict: document.getElementById('detailVerdict'),
+        detailNote: document.getElementById('detailNote'),
+        saveSelectedBtn: document.getElementById('saveSelectedBtn'),
+        stageSelectedBtn: document.getElementById('stageSelectedBtn'),
+        publishSelectedBtn: document.getElementById('publishSelectedBtn'),
+        composerWorkflow: document.getElementById('composerWorkflow'),
+        composerPolicy: document.getElementById('composerPolicy'),
+        composerVerdict: document.getElementById('composerVerdict'),
+        composerMarket: document.getElementById('composerMarket'),
+        composerOwner: document.getElementById('composerOwner'),
+        composerNote: document.getElementById('composerNote'),
+        saveNewBtn: document.getElementById('saveNewBtn'),
+        activityLog: document.getElementById('activityLog'),
+        toast: document.getElementById('toast')
+      });
+
+      const initialSheets = await mockApi.listSheets();
+      ui.sheetSelect.innerHTML = initialSheets.sheets.map((sheet) => '<option value="' + escapeHtml(sheet.id) + '">' + escapeHtml(sheet.name) + ' (' + escapeHtml(sheet.id) + ')</option>').join('');
+      bindEvents();
+      addActivity('Static demo booted using local mock data only.');
+      await connectAndLoad(initialSheets.sheets[0].id);
+    }
+
+    boot();
+  </script>
+</body>
+</html>

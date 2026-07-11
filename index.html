@@ -3,21 +3,126 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Viriathus Alignment Console - Demo</title>
-  <style>body{font-family:Arial,sans-serif;max-width:800px;margin:40px auto;padding:0 16px;line-height:1.5}code{background:#f4f4f4;padding:2px 6px;border-radius:4px}.box{border:1px solid #ddd;border-radius:10px;padding:16px}</style>
+  <title>Alignment Console - Demo Landing</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #08101f;
+      --panel: #0f172a;
+      --border: #2a3b57;
+      --text: #e2e8f0;
+      --muted: #9fb2d0;
+      --primary: #3b82f6;
+      --primary-2: #2563eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, Arial, sans-serif;
+      background: radial-gradient(circle at top right, rgba(59,130,246,0.2), transparent 30%), linear-gradient(180deg, #08101f 0%, #0b1324 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+    .card {
+      width: min(920px, 100%);
+      background: rgba(15, 23, 42, 0.94);
+      border: 1px solid rgba(71, 85, 105, 0.34);
+      border-radius: 24px;
+      padding: 32px;
+      box-shadow: 0 20px 48px rgba(2, 8, 23, 0.36);
+    }
+    h1 { margin: 0 0 12px; font-size: clamp(30px, 4vw, 44px); }
+    p { margin: 0; line-height: 1.6; }
+    .muted { color: var(--muted); }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 24px 0 28px;
+    }
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 220px;
+      padding: 14px 18px;
+      border-radius: 14px;
+      text-decoration: none;
+      font-weight: 700;
+      border: 1px solid transparent;
+    }
+    .button.primary {
+      background: linear-gradient(180deg, var(--primary), var(--primary-2));
+      color: white;
+      box-shadow: 0 12px 30px rgba(37,99,235,0.28);
+    }
+    .button.secondary {
+      background: #0d1729;
+      color: var(--text);
+      border-color: rgba(71,85,105,0.44);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .panel {
+      background: rgba(9, 18, 36, 0.88);
+      border: 1px solid rgba(71,85,105,0.22);
+      border-radius: 18px;
+      padding: 18px;
+    }
+    .panel h2 {
+      margin: 0 0 10px;
+      font-size: 18px;
+    }
+    ul {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--muted);
+    }
+    li + li { margin-top: 8px; }
+    @media (max-width: 760px) {
+      .card { padding: 24px; }
+      .grid { grid-template-columns: 1fr; }
+      .button { width: 100%; }
+    }
+  </style>
 </head>
 <body>
-  <h1>Viriathus Alignment Console (Mock Demo)</h1>
-  <div class="box">
-    <p>This is a sanitized public demo landing page for portfolio purposes.</p>
-    <p>Source modules:</p>
-    <ul>
-      <li><code>Code.gs</code></li>
-      <li><code>Index.html</code></li>
-      <li><code>CSS.html</code></li>
-      <li><code>JS.html</code></li>
-    </ul>
-    <p><a href="https://github.com/vlabarile3-sys/alignment-console" target="_blank" rel="noopener">Open repository</a></p>
-  </div>
+  <main class="card">
+    <p class="muted">Portfolio mock • standalone static build</p>
+    <h1>Alignment Console</h1>
+    <p class="muted">The interactive demo now runs entirely in a single self-contained HTML file with local fake data, so it works directly in the browser or on GitHub Pages without Google Apps Script.</p>
+
+    <div class="actions">
+      <a class="button primary" href="demo.html">Live Interactive Demo</a>
+      <a class="button secondary" href="https://github.com/vlabarile3-sys/alignment-console" target="_blank" rel="noopener">Repository</a>
+    </div>
+
+    <section class="grid">
+      <article class="panel">
+        <h2>What you can try</h2>
+        <ul>
+          <li>Connect a mock spreadsheet such as <strong>MOCK-SHEET-01</strong></li>
+          <li>Load the fake alignment queue and filter it live</li>
+          <li>Open a row, edit its note/verdict, then stage or publish it</li>
+          <li>Create a brand-new mock item locally in the demo</li>
+        </ul>
+      </article>
+      <article class="panel">
+        <h2>Sanitized source modules</h2>
+        <ul>
+          <li><a href="https://github.com/vlabarile3-sys/alignment-console/blob/main/Code.gs" target="_blank" rel="noopener">Code.gs</a></li>
+          <li><a href="https://github.com/vlabarile3-sys/alignment-console/blob/main/Index.html" target="_blank" rel="noopener">Index.html</a></li>
+          <li><a href="https://github.com/vlabarile3-sys/alignment-console/blob/main/CSS.html" target="_blank" rel="noopener">CSS.html</a></li>
+          <li><a href="https://github.com/vlabarile3-sys/alignment-console/blob/main/JS.html" target="_blank" rel="noopener">JS.html</a></li>
+        </ul>
+      </article>
+    </section>
+  </main>
 </body>
 </html>
