@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Alignment Console Demo</title>
+    <?!= include('CSS'); ?>
+  </head>
+  <body>
+    <main class="wrap">
+      <h1>Alignment Console Demo</h1>
+      <p class="sub">Fully sanitized mock portfolio version.</p>
+
+      <section class="panel">
+        <div class="row">
+          <label>Workflow</label>
+          <select id="workflow"></select>
+          <label>Policy</label>
+          <select id="policy"></select>
+        </div>
+        <div class="row">
+          <label>Verdict</label>
+          <select id="verdict">
+            <option>Approved</option>
+            <option>Review</option>
+            <option>Rejected</option>
+          </select>
+          <label>Note</label>
+          <input id="note" placeholder="Demo note" />
+          <button id="saveBtn">Save Mock Row</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Mock Queue</h2>
+        <table>
+          <thead>
+            <tr><th>ID</th><th>Workflow</th><th>Policy</th><th>Verdict</th><th>Note</th></tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </section>
+    </main>
+
+    <?!= include('JS'); ?>
+  </body>
+</html>

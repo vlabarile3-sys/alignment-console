@@ -1,0 +1,42 @@
+<script>
+  const state = { rows: [] };
+
+  function render(rows) {
+    const body = document.getElementById('rows');
+    body.innerHTML = rows.map(r =>
+      `<tr><td>${r.id}</td><td>${r.workflow}</td><td>${r.policy}</td><td>${r.verdict}</td><td>${r.note}</td></tr>`
+    ).join('');
+  }
+
+  function fillSelect(id, values) {
+    const el = document.getElementById(id);
+    el.innerHTML = values.map(v => `<option>${v}</option>`).join('');
+  }
+
+  function boot() {
+    google.script.run.withSuccessHandler((res) => {
+      fillSelect('workflow', res.workflows);
+      fillSelect('policy', res.policies);
+      state.rows = res.rows;
+      render(state.rows);
+    }).getMockState();
+
+    document.getElementById('saveBtn').addEventListener('click', () => {
+      const payload = {
+        id: `T-${Math.floor(Math.random() * 9000 + 1000)}`,
+        workflow: document.getElementById('workflow').value,
+        policy: document.getElementById('policy').value,
+        verdict: document.getElementById('verdict').value,
+        note: document.getElementById('note').value
+      };
+
+      google.script.run.withSuccessHandler((res) => {
+        state.rows.unshift(res.saved);
+        render(state.rows);
+        document.getElementById('note').value = '';
+      }).saveMockRow(payload);
+    });
+  }
+
+  boot();
+</script>
