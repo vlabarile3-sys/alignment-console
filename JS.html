@@ -1,42 +1,484 @@
-<script>
-  const state = { rows: [] };
+﻿<script>
+const STANDARD_POLICIES = ["No Violation", "Medical Advice", "Dangerous Content", "Hate Speech", "Harassment", "Sexually Explicit", "Violence & Gore", "Policy-A", "PII", "Review Required"];
+const FTE_POLICIES = ["Yes", "No"];
 
-  function render(rows) {
-    const body = document.getElementById('rows');
-    body.innerHTML = rows.map(r =>
-      `<tr><td>${r.id}</td><td>${r.workflow}</td><td>${r.policy}</td><td>${r.verdict}</td><td>${r.note}</td></tr>`
-    ).join('');
-  }
+let STATE = { tabs: [], headers: [], mapping: {}, page: 1, totalPages: 1 };
+let currentEditRow = null;
 
-  function fillSelect(id, values) {
-    const el = document.getElementById(id);
-    el.innerHTML = values.map(v => `<option>${v}</option>`).join('');
-  }
+// GESTIONE DELLO STATE HYDRATION (DEEP LINKING)
+window.PENDING_HIGHLIGHT_ROWS = null;
 
-  function boot() {
-    google.script.run.withSuccessHandler((res) => {
-      fillSelect('workflow', res.workflows);
-      fillSelect('policy', res.policies);
-      state.rows = res.rows;
-      render(state.rows);
-    }).getMockState();
+window.onload = () => {
+const deepLinkState = window.DEEP_LINK_STATE;
+// Se ci sono parametri URL dall'email
+if (deepLinkState && deepLinkState.sheetId) {
+document.getElementById('sheetId').value = deepLinkState.sheetId;
+window.PENDING_HIGHLIGHT_ROWS = deepLinkState.rows || null;
+connect(deepLinkState.tabName); // Autoconnessione con target tab
+} else {
+const saved = localStorage.getItem('mercury_id');
+if(saved){ document.getElementById('sheetId').value=saved; connect(); }
+else { toggleConfig(); }
+}
+};
 
-    document.getElementById('saveBtn').addEventListener('click', () => {
-      const payload = {
-        id: `T-${Math.floor(Math.random() * 9000 + 1000)}`,
-        workflow: document.getElementById('workflow').value,
-        policy: document.getElementById('policy').value,
-        verdict: document.getElementById('verdict').value,
-        note: document.getElementById('note').value
-      };
+function toggleConfig() {
+const sidebar = document.getElementById('configSidebar');
+const overlay = document.getElementById('sidebarOverlay');
+if (sidebar.classList.contains('open')) {
+sidebar.classList.remove('open'); overlay.classList.remove('show');
+} else {
+sidebar.classList.add('open'); overlay.classList.add('show');
+}
+}
 
-      google.script.run.withSuccessHandler((res) => {
-        state.rows.unshift(res.saved);
-        render(state.rows);
-        document.getElementById('note').value = '';
-      }).saveMockRow(payload);
-    });
-  }
+function load(show) { document.getElementById('loader').style.width = show ? '100%' : '0%'; }
 
-  boot();
+function extractIdOnPaste(inputElem) {
+const val = inputElem.value.trim();
+const sheetIdRegex = /\/d\/([a-zA-Z0-9-_]{40,})\b/;
+const match = val.match(sheetIdRegex);
+if (match && match[1]) {
+inputElem.value = match[1];
+}
+}
+
+// Passaggio opzionale per il tab automatico
+function connect(autoTabName = null) {
+let idToConnect = document.getElementById('sheetId').value.trim();
+if(!idToConnect) return;
+load(true);
+localStorage.setItem('mercury_id', idToConnect);
+document.getElementById('status').innerText = "CONNECTING...";
+google.script.run.withSuccessHandler(resStr => {
+load(false);
+const res = JSON.parse(resStr);
+if(res.success) {
+STATE.tabs = res.metadata;
+const sel = document.getElementById('tabSelect');
+sel.innerHTML = '<option value="">-- Select Worksheet --</option>';
+let autoTabIndex = -1;
+res.metadata.forEach((t, i) => {
+sel.innerHTML += `<option value="${i}">${t.name} (${t.lastRow} rows)</option>`;
+if (autoTabName && t.name === autoTabName) autoTabIndex = i;
+});
+const trackDiv = document.getElementById('multiTabSelect');
+trackDiv.innerHTML = '';
+const trackedSet = new Set(res.trackedTabs || []);
+res.metadata.forEach(t => {
+const isChecked = trackedSet.has(t.name) ? 'checked' : '';
+trackDiv.innerHTML += `<label class="tab-check-item"><input type="checkbox" value="${t.name}" class="tab-chk" ${isChecked}> ${t.name}</label>`;
+});
+document.getElementById('notifyEmails').value = res.notifyEmails || "";
+
+document.getElementById('configUI').style.display = 'block';
+document.getElementById('status').innerHTML = "<span style='color:var(--success)'>CONNECTED</span>";
+// SE IL DEEP LINKING RICHIEDE UN TAB SPECIFICO, bypassiamo il click utente
+if (autoTabIndex !== -1) {
+sel.value = autoTabIndex;
+loadTabConfig(); // Autocaricamento
+}
+} else alert("Connection Error: " + res.error);
+}).getSheetMetadata(idToConnect);
+}
+
+function loadTabConfig(force = false) {
+const idx = document.getElementById('tabSelect').value;
+if(idx === "") return;
+load(true);
+const configPayload = JSON.stringify({ spreadsheetId: document.getElementById('sheetId').value, sheetName: STATE.tabs[idx].name, forceRefresh: force });
+
+google.script.run.withSuccessHandler(resStr => {
+load(false);
+const res = JSON.parse(resStr);
+if(res.success) {
+STATE.headers = res.headers;
+if(res.isNew || res.config) {
+const c = res.isNew ? res.suggestedConfig : res.config;
+document.getElementById('headerRow').value = c.headerRow;
+STATE.mapping = c.mapping;
+}
+renderSelects();
+loadData(-1);
+if(document.getElementById('configSidebar').classList.contains('open')) toggleConfig();
+} else alert("Configuration Error: " + res.error);
+}).detectConfigAndHeaders(configPayload);
+}
+
+function forceScan() { loadTabConfig(true); }
+function softRefresh() { saveMap(); loadData(); }
+
+function renderSelects() {
+const opts = '<option value="">-- Ignore --</option>' + STATE.headers.map(h => `<option value="${h.index}">${h.name}</option>`).join('');
+document.querySelectorAll('.map-sel').forEach(s => { s.innerHTML = opts; s.value = STATE.mapping[s.dataset.key] || ""; });
+}
+
+function saveMap() {
+document.querySelectorAll('.map-sel').forEach(s => STATE.mapping[s.dataset.key] = s.value);
+const idx = document.getElementById('tabSelect').value;
+const payload = JSON.stringify({ spreadsheetId: document.getElementById('sheetId').value, sheetName: STATE.tabs[idx].name, headerRow: document.getElementById('headerRow').value, mapping: STATE.mapping });
+google.script.run.saveConfig(payload);
+}
+
+function setEmailTarget() {
+const emails = document.getElementById('notifyEmails').value;
+const selectedTabs = [];
+document.querySelectorAll('.tab-chk:checked').forEach(c => selectedTabs.push(c.value));
+if(selectedTabs.length === 0) return alert("Please select at least one tab to monitor.");
+if(!emails) return alert("Please insert an email address.");
+
+const payload = JSON.stringify({ sheetId: document.getElementById('sheetId').value, trackedTabsArray: selectedTabs, emails: emails });
+google.script.run.withSuccessHandler(resStr => {
+const res = JSON.parse(resStr);
+if (res.success) alert(`Alerts active. Notifications routing to [${emails}] for ${selectedTabs.length} tabs.`);
+else alert("Error setting alerts: " + res.error);
+}).setMonitoringTarget(payload);
+}
+
+function smartFormatText(text) {
+if (!text) return "";
+let cleanText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+cleanText = cleanText.replace(/active_tab_dump\s*:\s*\{[^}]*\}/gi, '');
+cleanText = cleanText.replace(/active_tab_title\s*:/gi, '');
+cleanText = cleanText.replace(/active_tab_url\s*:/gi, '');
+cleanText = cleanText.replace(/(https?:\/\/[^\s,'"]+)/g, '<a href="$1" target="_blank" class="link-chip" onclick="event.stopPropagation()">Link</a>');
+cleanText = cleanText.replace(/\*\*(.*?)\*\*/g, '$1');
+return cleanText.trim();
+}
+
+function parseSmartMarkdown(text) {
+if (!text) return "<i style='opacity:0.5'>Nessun dato fornito.</i>";
+let html = text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+html = html.replace(/active_tab_dump\s*:\s*\{[^}]*\}/gi, '');
+html = html.replace(/\*\*(.*?)\*\*/g, '<strong style="color:var(--accent-gold); font-weight:600;">$1</strong>');
+html = html.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" style="color:var(--accent-blue); text-decoration:none; border-bottom: 1px dashed var(--accent-blue); padding-bottom: 1px;">$1</a>');
+const lines = html.split('\n');
+let parsedHTML = [];
+let inList = false;
+
+lines.forEach(line => {
+let trimmed = line.trim();
+if (trimmed.startsWith('* ') || trimmed.startsWith('- ')) {
+if (!inList) {
+parsedHTML.push('<ul style="padding-left:18px; margin-bottom:16px;">');
+inList = true;
+}
+parsedHTML.push(`<li style="margin-bottom:8px; line-height:1.6;"><span>${trimmed.substring(2)}</span></li>`);
+} else {
+if (inList) { parsedHTML.push('</ul>'); inList = false; }
+if (trimmed !== "") {
+parsedHTML.push(`<p style="margin-bottom:14px; line-height:1.6;">${trimmed}</p>`);
+}
+}
+});
+if (inList) parsedHTML.push('</ul>');
+
+return parsedHTML.join('');
+}
+
+function openInspector(encCtx, encRes) {
+const ctxStr = decodeURIComponent(encCtx);
+const resStr = decodeURIComponent(encRes);
+const content = `
+<div class="md-section" style="background: var(--bg-surface-hover); border: 1px solid var(--border-strong);">
+<div class="md-title" style="color: var(--accent-blue);">👤 USER QUERY</div>
+<div style="font-size:0.95rem; color: #ffffff;">${parseSmartMarkdown(ctxStr)}</div>
+</div>
+<div class="md-section" style="background: #000000; border: 1px solid rgba(220, 210, 166, 0.2); box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+<div class="md-title" style="color: var(--accent-gold); border-bottom: 1px dashed rgba(220, 210, 166, 0.3);">🤖 MODEL REPLY</div>
+<div style="font-size:0.95rem; color: #ffffff;">${parseSmartMarkdown(resStr)}</div>
+</div>
+`;
+document.getElementById('inspectorContent').innerHTML = content;
+document.getElementById('inspectorModal').style.display = 'block';
+}
+
+function closeInspector() { document.getElementById('inspectorModal').style.display = 'none'; }
+
+function openNotesModal(rowIdx) {
+currentEditRow = rowIdx;
+const lisVal = document.getElementById(`c-lis-${rowIdx}`).value;
+const krkVal = document.getElementById(`c-krk-${rowIdx}`).value;
+document.getElementById('modalLisNote').value = lisVal;
+document.getElementById('modalKrkNote').value = krkVal;
+document.getElementById('notesModal').style.display = 'block';
+}
+
+function closeNotesModal() { document.getElementById('notesModal').style.display = 'none'; currentEditRow = null; }
+
+function saveNotesModal() {
+if (currentEditRow) {
+const lisVal = document.getElementById('modalLisNote').value;
+const krkVal = document.getElementById('modalKrkNote').value;
+document.getElementById(`c-lis-${currentEditRow}`).value = lisVal;
+document.getElementById(`c-krk-${currentEditRow}`).value = krkVal;
+const btn = document.getElementById(`btn-notes-${currentEditRow}`);
+if (lisVal || krkVal) {
+btn.style.borderColor = 'var(--accent-gold)';
+btn.style.color = 'var(--accent-gold)';
+} else {
+btn.style.borderColor = 'var(--border-strong)';
+btn.style.color = 'var(--text-secondary)';
+}
+}
+closeNotesModal();
+}
+
+function syncSelectBorder(selectElement) {
+const val = selectElement.value;
+selectElement.style.borderColor = /Okay|No Violation|Yes/i.test(val) ? 'var(--success)' : (val ? 'var(--danger)' : 'rgba(56, 189, 248, 0.3)');
+}
+
+function syncFinalDecision(selectElement, rowIdx) {
+syncSelectBorder(selectElement);
+const val = selectElement.value;
+const textArea = document.getElementById(`c-fin-${rowIdx}`);
+const pushBtn = document.getElementById(`btn-push-${rowIdx}`);
+if (val && val.trim() !== "") {
+textArea.classList.remove('txt-hidden');
+textArea.classList.add('txt-visible');
+pushBtn.classList.remove('btn-disabled');
+} else {
+textArea.classList.remove('txt-visible');
+textArea.classList.add('txt-hidden');
+pushBtn.classList.add('btn-disabled');
+}
+}
+
+function makeDynamicOpts(currRaw, optsArray, fallbackText = "") {
+let curr = (currRaw || "").trim();
+let found = false;
+
+if (!curr && fallbackText) {
+const textLower = fallbackText.toLowerCase();
+for (let p of optsArray) {
+if (textLower.includes(p.toLowerCase())) {
+curr = p;
+break;
+}
+}
+}
+
+let html = `<option value="">- Select -</option>`;
+optsArray.forEach(p => {
+let isSel = (curr.toLowerCase() === p.toLowerCase());
+if (isSel) found = true;
+html += `<option value="${p}" ${isSel ? 'selected' : ''}>${p}</option>`;
+});
+
+if (curr && !found) {
+let display = curr.length > 35 ? curr.substring(0, 35) + '...' : curr;
+html += `<option value="${curr.replace(/"/g, '&quot;')}" selected>${display} (Custom)</option>`;
+}
+return html;
+}
+
+function renderTableRow(r, tabName) {
+const isFteAudit = tabName.toLowerCase().includes('fte');
+const optsArray = isFteAudit ? FTE_POLICIES : STANDARD_POLICIES;
+const getBorder = v => /Okay|No Violation|Yes/i.test(v) ? 'var(--success)' : (v ? 'var(--danger)' : 'var(--border-strong)');
+let alignBadge = `<div class="badge b-pend">Pending Votes</div>`;
+let rowClass = "";
+if (r.lisVerdict && r.krkVerdict) {
+if (r.lisVerdict === r.krkVerdict) { alignBadge = `<div class="badge b-ok">Consensus Reached</div>`; rowClass="row-green"; }
+else { alignBadge = `<div class="badge b-warn">Conflict Detected</div>`; rowClass="row-conflict"; }
+}
+
+const safeContext = encodeURIComponent(r.context || "").replace(/'/g, "%27");
+const safeResponse = encodeURIComponent(r.response || "").replace(/'/g, "%27");
+
+let fteColHtml = '';
+if (isFteAudit && r.fteVerdict) {
+let fV = r.fteVerdict;
+let isNoViol = /no violation/i.test(fV);
+let fColor = isNoViol ? 'var(--success)' : 'var(--danger)';
+fteColHtml = `
+<div style="margin-top:12px; padding-top:12px; border-top:1px dashed var(--border-subtle);">
+<span style="color:var(--text-tertiary); font-size:0.6rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase;">Original FTE Verdict:</span>
+<span style="font-family:var(--font-code); font-weight:600; font-size:0.75rem; color:${fColor}; margin-left:6px;">${fV}</span>
+</div>`;
+}
+
+const notesExist = r.lisComment || r.krkComment;
+const noteIconColor = notesExist ? 'var(--accent-gold)' : 'var(--text-tertiary)';
+const noteIconHTML = `
+<button id="btn-notes-${r.realRowIndex}" class="btn-icon" style="width:32px; height:32px; border-color:${noteIconColor}; color:${noteIconColor}; flex-shrink:0;" onclick="openNotesModal(${r.realRowIndex})" title="Edit Internal Notes">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+</button>
+`;
+
+let finBorderColor = 'rgba(56, 189, 248, 0.3)';
+if (r.finalVerdict) { finBorderColor = getBorder(r.finalVerdict); }
+else if (r.finalComment) { finBorderColor = getBorder(r.finalComment); }
+
+let liveGlobalIndicator = '';
+if (r.globalV && r.globalV.trim() !== "") {
+liveGlobalIndicator = `<span class="badge-global" title="Data already exists in the EMEA Col">EMEA LIVE</span>`;
+}
+
+let globalMeetingHtml = '';
+if (r.gmVerdict && r.gmVerdict.trim() !== "") {
+globalMeetingHtml = `
+<div class="badge-gm" title="Authoritative Global Meeting Decision">
+🌍 Global Meeting: <span>${r.gmVerdict}</span>
+</div>
+`;
+}
+const taClass = (r.finalVerdict && r.finalVerdict.trim() !== "") ? 'txt-visible' : 'txt-hidden';
+const btnPushClass = (r.finalVerdict && r.finalVerdict.trim() !== "") ? '' : 'btn-disabled';
+
+return `
+<tr id="r-${r.realRowIndex}" class="${rowClass}">
+<td style="text-align:center; vertical-align:middle;">
+<span style="font-family:var(--font-code); color:var(--text-tertiary); font-weight:500; font-size:0.8rem;">${r.realRowIndex}</span>
+</td>
+<td>
+<div class="payload-card" onclick="openInspector('${safeContext}', '${safeResponse}')">
+<span class="pl-label">Context</span>
+<div class="pl-text-ctx">${smartFormatText(r.context)}</div>
+<span class="pl-label">Model Output</span>
+<div class="pl-text-res">${smartFormatText(r.response)}</div>
+${fteColHtml}
+</div>
+</td>
+<td style="padding:16px 20px;">
+<div style="margin-bottom: 12px; display:flex; justify-content:center;">${alignBadge}</div>
+<div style="display:flex; align-items:flex-end; gap:8px;">
+<div style="flex:1; display:flex; gap:8px;">
+<div style="flex:1;">
+<div style="font-size:0.55rem; color:var(--text-tertiary); margin-bottom:6px; text-transform:uppercase; font-weight:600; text-align:center;">WF_ALPHA</div>
+<select class="t-select v-lis" onchange="syncSelectBorder(this)" style="border-color:${getBorder(r.lisVerdict)}; height:32px; padding:4px 8px; margin-bottom:0;">${makeDynamicOpts(r.lisVerdict, optsArray)}</select>
+</div>
+<div style="flex:1;">
+<div style="font-size:0.55rem; color:var(--text-tertiary); margin-bottom:6px; text-transform:uppercase; font-weight:600; text-align:center;">WF_BETA</div>
+<select class="t-select v-krk" onchange="syncSelectBorder(this)" style="border-color:${getBorder(r.krkVerdict)}; height:32px; padding:4px 8px; margin-bottom:0;">${makeDynamicOpts(r.krkVerdict, optsArray)}</select>
+</div>
+</div>
+${noteIconHTML}
+</div>
+<input type="hidden" class="c-lis" id="c-lis-${r.realRowIndex}" value="${(r.lisComment||"").replace(/"/g, '&quot;')}">
+<input type="hidden" class="c-krk" id="c-krk-${r.realRowIndex}" value="${(r.krkComment||"").replace(/"/g, '&quot;')}">
+</td>
+<td style="padding:16px 20px;">
+${globalMeetingHtml}
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+<span style="font-size:0.55rem; color:var(--accent-blue); text-transform:uppercase; font-weight:600; letter-spacing:0.05em;">Final Decision (EMEA)</span>
+${liveGlobalIndicator}
+</div>
+<select class="t-select v-fin" onchange="syncFinalDecision(this, ${r.realRowIndex})" style="border-color:${finBorderColor}; border-width:1px; height: 36px; margin-bottom:12px; font-weight:500;">
+${makeDynamicOpts(r.finalVerdict, optsArray, r.finalComment)}
+</select>
+<textarea id="c-fin-${r.realRowIndex}" class="t-textarea c-fin ${taClass}" placeholder="Add explicit reasoning for Global sync...">${(r.finalComment||"").replace(/"/g, '&quot;')}</textarea>
+</td>
+<td style="vertical-align: middle; text-align:center;">
+<div style="display:flex; flex-direction:column; gap:8px; align-items:center;">
+<button class="btn btn-ghost" style="width:100%; padding:8px;" onclick="actionSub(${r.realRowIndex}, '${r.id}', 'draft', this)">Save Draft</button>
+<button id="btn-push-${r.realRowIndex}" class="btn btn-cyan ${btnPushClass}" style="width:100%; padding:8px;" onclick="actionSub(${r.realRowIndex}, '${r.id}', 'push', this)">Send to Global ➔</button>
+</div>
+</td>
+</tr>`;
+}
+
+// MOTORE DI AUTOSCROLL ED HIGHLIGHT
+function executeDeepLinkHighlight() {
+if (!window.PENDING_HIGHLIGHT_ROWS) return;
+let targetRows = String(window.PENDING_HIGHLIGHT_ROWS);
+let startRow, endRow;
+if (targetRows.includes('-')) {
+const parts = targetRows.split('-');
+startRow = parseInt(parts[0]);
+endRow = parseInt(parts[1]);
+} else {
+startRow = parseInt(targetRows);
+endRow = startRow;
+}
+let scrolled = false;
+for (let i = startRow; i <= endRow; i++) {
+const tr = document.getElementById(`r-${i}`);
+if (tr) {
+tr.classList.add('highlight-row');
+if (!scrolled) {
+tr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+scrolled = true;
+}
+}
+}
+window.PENDING_HIGHLIGHT_ROWS = null; // Svuota la memoria dopo l'uso
+}
+
+function changePage(d) { STATE.page += d; loadData(); }
+
+function loadData(targetPage = null) {
+const idx = document.getElementById('tabSelect').value;
+if(idx === "") return;
+const p = targetPage !== null ? targetPage : STATE.page;
+const tabName = STATE.tabs[idx].name;
+load(true);
+document.getElementById('pageInfo').innerText = "Syncing...";
+const payload = JSON.stringify({
+spreadsheetId: document.getElementById('sheetId').value,
+sheetName: tabName,
+headerRow: document.getElementById('headerRow').value,
+mapping: STATE.mapping,
+page: p
+});
+google.script.run.withSuccessHandler(resStr => {
+load(false);
+const res = JSON.parse(resStr);
+const tb = document.getElementById('tBody');
+if(res.success) {
+STATE.page = res.page;
+STATE.totalPages = res.totalPages;
+document.getElementById('pageInfo').innerText = `Page ${res.page}/${res.totalPages} • ${res.totalFiltered} rows`;
+if(res.data.length === 0) {
+tb.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:60px; color:var(--text-tertiary); font-size:0.9rem;">Queue empty. Processing complete.</td></tr>';
+return;
+}
+tb.innerHTML = res.data.map(row => renderTableRow(row, tabName)).join('');
+// Applica l'highlight se richiesto dall'URL (timeout per permettere al DOM di dipingersi)
+setTimeout(executeDeepLinkHighlight, 100);
+} else {
+alert("Error loading data: " + res.error);
+}
+}).getMercuryData(payload);
+}
+
+function actionSub(rowIdx, id, actionType, btn) {
+const tr = document.getElementById(`r-${rowIdx}`);
+const vFin = tr.querySelector('.v-fin').value;
+if (actionType === 'push' && !vFin) return alert("Action Required: Final Verdict must be populated before committing to Global file.");
+const payload = JSON.stringify({
+action: actionType,
+spreadsheetId: document.getElementById('sheetId').value,
+sheetName: STATE.tabs[document.getElementById('tabSelect').value].name,
+rowIndex: rowIdx,
+id: id,
+mapping: STATE.mapping,
+lis: { v: tr.querySelector('.v-lis').value, c: tr.querySelector('.c-lis').value },
+krk: { v: tr.querySelector('.v-krk').value, c: tr.querySelector('.c-krk').value },
+fin: { v: vFin, c: tr.querySelector('.c-fin').value }
+});
+const originalText = btn.innerText;
+btn.innerText = "Wait...";
+google.script.run.withSuccessHandler(resStr => {
+const res = JSON.parse(resStr);
+if(res.success) {
+btn.innerText = "Done";
+setTimeout(() => { btn.innerText = originalText; }, 1200);
+tr.querySelectorAll('.t-select').forEach(s => {
+if(s.value) s.style.borderColor = /Okay|No Violation|Yes/i.test(s.value)?'var(--success)':'var(--danger)';
+});
+const lV = tr.querySelector('.v-lis').value;
+const kV = tr.querySelector('.v-krk').value;
+if (lV && kV) {
+if (lV === kV) { tr.className = 'row-green'; tr.querySelector('.badge').className = 'badge b-ok'; tr.querySelector('.badge').innerText = 'Consensus Reached'; }
+else { tr.className = 'row-conflict'; tr.querySelector('.badge').className = 'badge b-warn'; tr.querySelector('.badge').innerText = 'Conflict Detected'; }
+}
+} else { alert(res.error); btn.innerText = originalText; }
+}).submitMercuryRow(payload);
+}
+
+document.addEventListener('keydown', (e) => {
+if (e.key === 'Escape') { closeInspector(); closeNotesModal(); }
+});
 </script>
